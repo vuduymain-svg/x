@@ -1,0 +1,381 @@
+# Legends of Runeterra – Đặc tả Combat
+## PHẦN 1/3: Luồng giao tranh, tốc độ phép và phản hồi
+
+### 1. Mục tiêu
+
+Combat không được xử lý theo kiểu vừa xác nhận tấn công là lập tức gây sát thương. Người chơi và AI phải có cơ hội sử dụng phép thuật, kỹ năng và hiệu ứng phản hồi trước khi các quân thực sự giao chiến.
+
+Quy tắc quan trọng nhất: **quân tấn công đã được xác nhận chặn thì vẫn được xem là đã bị chặn, kể cả khi quân chặn bị tiêu diệt, Recall, Stun, Capture hoặc Obliterate trước khi Strike.** Quân tấn công thông thường không đánh Nexus trong trường hợp đó. Ngoại lệ quan trọng là Overwhelm.
+
+### 2. Bốn loại tốc độ phép
+
+| Loại phép | Dùng trong combat? | Có cửa sổ phản hồi? |
+|---|---:|---:|
+| Burst – Siêu tốc | Có | Không |
+| Fast – Nhanh | Có | Có |
+| Focus – Tập trung | Không | Không |
+| Slow – Chậm | Không | Có |
+
+#### Burst – Siêu tốc
+- Giải quyết ngay khi sử dụng.
+- Không đưa lên chuỗi phép phản hồi.
+- Đối phương không được chen hành động để ngăn phép giải quyết.
+- Có thể dùng liên tiếp nhiều lá Burst khi người chơi còn quyền hành động, còn bài và đủ mana.
+- Mỗi lá vẫn tiêu tốn mana và được sử dụng khỏi tay.
+
+#### Fast – Nhanh
+- Có thể sử dụng trước khi xác nhận phòng thủ, trong lúc combat và khi phản hồi phép/kỹ năng.
+- Sau khi một bên sử dụng Fast, bên kia có cơ hội phản hồi bằng Fast hoặc Burst.
+- Các phép Fast được đưa vào stack; phép được đưa vào sau sẽ giải quyết trước.
+- Khi cả hai bên liên tiếp nhường quyền, stack được giải quyết trước khi combat tiếp tục.
+- khi conbat chỉ dùng đưọc 1 lần bài phép nhanh
+#### Focus – Tập trung
+- Giải quyết ngay lập tức.
+- Không được sử dụng trong combat.
+- Không được sử dụng khi đang có phép/kỹ năng chờ xử lý.
+
+#### Slow – Chậm
+- Chỉ sử dụng khi người chơi có quyền hành động ngoài combat.
+- Không được sử dụng trong combat hoặc khi stack đang chờ xử lý.
+- Đối phương có thể phản hồi bằng Fast hoặc Burst.
+
+### 3. Trình tự combat
+
+1. **Chuẩn bị tấn công:** Người chơi chọn các quân đưa vào vị trí tấn công và sắp xếp thứ tự.
+2. **Xác nhận tấn công:** Tiêu thụ Attack Token; kích hoạt hiệu ứng Attack và các hiệu ứng khi đồng minh tấn công.
+3. **Phòng thủ:** Đối phương chọn quân chặn hợp lệ, xử lý Challenger/Vulnerable và có thể dùng Fast/Burst khi được quyền.
+4. **Người tấn công phản hồi:** Người chơi có thể dùng Fast/Burst để tăng sức mạnh, tiêu diệt blocker, làm choáng, hồi máu hoặc tạo Barrier.
+5. **Các lượt phản hồi tiếp theo:** Hai bên luân phiên phản hồi bằng Fast/Burst hoặc kỹ năng có cửa sổ phản hồi.
+6. **Đóng stack:** Khi hai bên liên tiếp nhường quyền, giải quyết stack theo thứ tự LIFO (vào sau, giải quyết trước). Burst đã giải quyết ngay từ lúc sử dụng.
+7. **Kiểm tra trạng thái:** Kiểm tra quân còn sống, còn tham gia combat, blocker còn tồn tại, chỉ số và keyword hiện tại.
+8. **Tính Strike:** Xử lý Quick Attack, Double Attack, Overwhelm, Formidable và các hiệu ứng Strike.
+9. **Kết thúc combat:** Xử lý chết, Last Breath, Deathless, Ephemeral, Nexus và đưa quân còn lại về trạng thái phù hợp.
+
+### 4. Các trường hợp chặn cơ bản
+
+| Tình huống | Kết quả |
+|---|---|
+| Không có quân chặn | Quân tấn công đánh Nexus |
+| Có quân chặn hợp lệ và được xác nhận | Hai quân giao chiến |
+| Blocker bị giết trước khi xác nhận chặn | Quân tấn công đánh Nexus |
+| Blocker bị giết sau khi đã xác nhận chặn | Attacker thường không đánh Nexus |
+| Blocker bị Recall sau khi chặn | Attacker vẫn được tính là đã bị chặn |
+| Blocker bị Obliterate sau khi chặn | Attacker vẫn được tính là đã bị chặn |
+| Blocker bị Stun sau khi chặn | Attacker vẫn được tính là đã bị chặn |
+| Blocker bị Capture sau khi chặn | Attacker vẫn được tính là đã bị chặn |
+| Attacker bị loại trước khi Strike | Blocker không tự động đánh Nexus |
+| Attacker có Overwhelm, blocker bị loại | Attacker gây toàn bộ sát thương lên Nexus |
+
+**Lỗi logic cần tránh:** không được chỉ kiểm tra `currentBlockerId`. Phải lưu trạng thái `wasBlocked` riêng. Ví dụ: `wasBlocked = true`, `currentBlockerId = null` vì blocker đã chết. Nếu chỉ thấy không còn blocker rồi coi như chưa bị chặn, game sẽ cho attacker đánh sai vào Nexus.
+
+### 5. Các tình huống phản hồi tiêu biểu
+
+#### A. Người chơi dùng Fast tiêu diệt blocker
+1. AI xác nhận blocker.
+2. Người chơi sử dụng Fast để tiêu diệt blocker.
+3. AI có cơ hội phản hồi bằng Fast/Burst.
+4. Stack giải quyết.
+5. Nếu blocker bị loại, attacker vẫn bị tính là đã chặn; không đánh Nexus nếu thiếu Overwhelm.
+
+#### B. Người chơi dùng nhiều Burst liên tiếp
+- Người chơi có thể sử dụng nhiều Burst liên tiếp nếu còn quyền hành động, bài và mana.
+- Mỗi Burst giải quyết ngay.
+- AI không được chen phản hồi giữa các lá Burst.
+- Khi người chơi nhường quyền, AI mới có cơ hội hành động.
+#### C. AI dùng Fast tiêu diệt attacker
+- Người chơi xác nhận tấn công.
+- AI chọn blocker và dùng Fast tiêu diệt một attacker.
+- Người chơi có cơ hội phản hồi.
+- Nếu attacker bị loại sau khi stack giải quyết, blocker tương ứng không tự động đánh Nexus.
+
+#### D. Bảo vệ blocker bằng Barrier
+- Người chơi dùng phép gây sát thương lên blocker.
+- AI phản hồi bằng Burst tạo Barrier.
+- Khi phép sát thương giải quyết, Barrier hấp thụ sát thương.
+- Blocker còn sống và combat tiếp tục.
+
+#### E. SpellShield chống phép chọn mục tiêu
+- Phép/kỹ năng của đối phương nhắm vào quân có SpellShield 1 lần
+- SpellShield vô hiệu hóa tác động phù hợp và bị tiêu thụ.
+- Quân tiếp tục tham gia combat.
+
+#### F. Hai bên dùng phép liên tục
+Ví dụ: Player Fast → AI Fast → Player Fast → AI Burst → Player Burst. Burst giải quyết ngay tại thời điểm sử dụng; các Fast chờ trên stack. Khi hai bên nhường quyền, stack giải quyết theo thứ tự vào sau giải quyết trước. Chỉ sau khi stack hoàn tất mới tiếp tục Strike.
+
+### 6. Lưu ý về quân được tạo trong cửa sổ phản hồi
+
+Phép/kỹ năng tạo quân mới trong cửa sổ phản hồi không tự động biến quân mới thành blocker. Việc chặn đã được xác nhận trước đó, trừ khi một hiệu ứng đặc biệt của lá bài quy định khác.
+Huyền Thoại Runeterra – Đặc tả Combat
+PHẦN 2/3: Từ khóa ảnh hưởng đến tấn công, phòng thủ và sát thương
+Tên từ khóa trong tài liệu này ưu tiên cách gọi tiếng Việt được sử dụng trong nội dung tiếng Việt chính thức của Huyền Thoại Runeterra. Một số từ khóa có thể chưa có bản dịch tiếng Việt nhất quán trong mọi phiên bản hoặc tài liệu, vì vậy tên tiếng Anh được ghi kèm để đối chiếu.
+1. Từ khóa thay đổi cách tấn công và phòng thủ
+Áp Đảo (Overwhelm)
+Khi tấn công, sát thương vượt quá lượng Máu của bài quân chặn sẽ gây lên Nhà Chính đối phương.
+Ví dụ: bài quân tấn công có 8 Sức Mạnh, bài quân chặn còn 3 Máu. Tối đa 3 sát thương được phân bổ lên bài quân chặn và 5 sát thương còn lại lên Nhà Chính.
+Nếu bài quân chặn bị loại khỏi giao tranh trước khi đòn đánh được thực hiện, bài quân có Áp Đảo có thể gây toàn bộ sát thương lên Nhà Chính.
+Áp Đảo chỉ có tác dụng khi tấn công, không có tác dụng khi phòng thủ.
+Đột Kích (Quick Attack)
+Khi tấn công, bài quân có Đột Kích ra đòn trước bài quân chặn.
+Ví dụ: bài quân 4/2 có Đột Kích đối đầu bài quân 3/4. Nếu đòn đánh đầu tiên tiêu diệt bài quân chặn, bài quân chặn không còn cơ hội phản công.
+Đột Kích không cho bài quân đánh trước khi nó đang phòng thủ.
+Song Kích (Double Attack)
+Khi tấn công, bài quân có Song Kích ra đòn trước bài quân chặn, sau đó ra đòn lần nữa cùng lúc với bài quân chặn nếu giao tranh vẫn tiếp diễn.
+Nếu đòn đầu tiên tiêu diệt bài quân chặn, đòn thứ hai không tự động chuyển thành sát thương lên Nhà Chính. Áp Đảo có thể làm thay đổi kết quả này.
+Khi kết hợp với Đột Kích, phải áp dụng đúng quy tắc Song Kích của game, không tự cộng thành ba lần đánh.
+Thách Đấu (Challenger)
+Khi tấn công, bài quân có Thách Đấu được chọn bài quân địch bị buộc phải chặn nó.
+Phải kiểm tra mục tiêu được chọn có hợp lệ theo luật và hiệu ứng của game hay không.
+Thách Đấu có thể vượt qua một số hạn chế chặn thông thường, chẳng hạn Không Thể Chặn, Bất Động, Choáng hoặc Huyền Ảo, theo quy tắc của game.
+Huyền Ảo (Elusive)
+Bài quân Huyền Ảo thông thường chỉ bị chặn bởi bài quân Huyền Ảo khác.
+Một số hiệu ứng như Thách Đấu có thể ép bài quân không có Huyền Ảo tham gia chặn theo ngoại lệ của game.
+Nếu Huyền Ảo được cấp sau khi bài quân đã bị chặn, việc chặn đã xác nhận không tự động bị hủy.
+Đáng Sợ (Fearsome)
+Chỉ bài quân có ít nhất 3 Sức Mạnh mới được phép chặn bài quân Đáng Sợ.
+Kiểm tra Sức Mạnh tại thời điểm xác nhận chặn.
+Một số tương tác với Thách Đấu có thể tạo ngoại lệ theo luật game.
+Brash
+Chỉ bài quân có ít nhất 3 Máu mới được phép chặn bài quân Brash.
+Brash kiểm tra Máu, khác với Đáng Sợ kiểm tra Sức Mạnh.
+Nếu bản game đang triển khai có bản dịch tiếng Việt riêng cho Brash, hãy dùng đúng tên hiển thị trên lá bài.
+Kiên Cường (Formidable)
+Khi ra đòn, bài quân Kiên Cường sử dụng Máu hiện tại thay cho Sức Mạnh để tính sát thương.
+Ví dụ: bài quân có 0 Sức Mạnh và 8 Máu vẫn có thể gây 8 sát thương khi ra đòn.
+Nếu Máu bị giảm trước khi ra đòn, sử dụng lượng Máu hiện tại.
+Trinh Sát (Scout)
+Nếu chỉ dùng các bài quân Trinh Sát để tấn công trong đợt tấn công đó, người chơi được làm mới Biểu Tượng Tấn Công sau đợt Trinh Sát đầu tiên trong round.
+Người chơi có thể sử dụng cơ hội tấn công tiếp theo theo luật của Biểu Tượng Tấn Công.
+Trinh Sát chỉ có tác dụng khi tấn công, không có tác dụng khi phòng thủ.
+2. Từ khóa bảo vệ và giảm sát thương
+Lá Chắn (Barrier)
+Vô hiệu hóa sát thương tiếp theo mà bài quân sẽ phải nhận trong thời gian hiệu lực.
+Lá Chắn không cộng dồn thành nhiều lớp.
+Lá Chắn không ngăn các hiệu ứng loại bỏ trực tiếp như Tiêu Diệt, Thu Hồi hoặc Xóa Sổ, vì đó không phải sát thương.
+Lá Chắn không ngăn phần sát thương Áp Đảo gây lên Nhà Chính đối phương.
+Nếu bài quân có Lá Chắn và Cứng Cáp, Lá Chắn hấp thụ sát thương trước; sau đó Cứng Cáp mới được xét nếu còn sát thương.
+Khiên Phép (SpellShield)
+Vô hiệu hóa phép hoặc kỹ năng của đối phương tác động lên bài quân có Khiên Phép.
+Khiên Phép chỉ bảo vệ một lần và không cộng dồn.
+Khiên Phép không ngăn sát thương từ đòn đánh thông thường.
+Với phép có nhiều mục tiêu, xử lý Khiên Phép riêng cho từng mục tiêu.
+Cứng Cáp (Tough)
+Bài quân Cứng Cáp nhận ít hơn 1 sát thương từ các nguồn sát thương phù hợp.
+Áp dụng khi tấn công, phòng thủ hoặc nhận sát thương từ phép/kỹ năng.
+Cứng Cáp giảm sát thương; Lá Chắn hấp thụ sát thương. Hai cơ chế không được gộp làm một.
+Hút Máu (Lifesteal)
+Khi bài quân Hút Máu ra đòn và gây sát thương, Nhà Chính đồng minh được hồi Máu theo lượng sát thương thực tế theo quy tắc của game.
+Nếu đòn đánh vào bài quân có Lá Chắn và không gây sát thương, Hút Máu không hồi Máu cho Nhà Chính từ đòn đó.
+Hồi Phục (Regeneration)
+Bài quân Hồi Phục hồi đầy Máu vào đầu round theo quy tắc của game.
+Không tự động hồi đầy ngay sau mỗi lần giao tranh.
+Bất Diệt (Deathless)
+Khi bài quân Bất Diệt hy sinh, loại bỏ từ khóa Bất Diệt và hồi sinh bài quân đó với 1 Máu trong trạng thái Choáng.
+Phải xử lý đây là hiệu ứng hồi sinh, không phải bài quân chưa từng chết.
+3. Từ khóa và trạng thái ảnh hưởng khả năng chiến đấu
+Không Thể Chặn (Can't Block)
+Bài quân không thể được chọn làm bài quân chặn thông thường.
+Phải xét các hiệu ứng ép chặn như Thách Đấu hoặc Dễ Bị Tổn Thương theo ngoại lệ của game.
+Bất Động (Immobile)
+Bài quân không thể tấn công hoặc chặn theo quy tắc của từ khóa.
+Cần xét riêng các hiệu ứng ép chặn có thể vượt qua hạn chế này.
+Choáng (Stunned)
+Bài quân bị loại khỏi giao tranh và không thể tấn công hoặc chặn trong thời gian hiệu lực.
+Nếu bài quân đã được xác nhận chặn trước khi bị Choáng, bài quân tấn công vẫn được tính là đã bị chặn.
+Dễ Bị Tổn Thương (Vulnerable)
+Bài quân Dễ Bị Tổn Thương có thể bị bài quân đối phương chọn để buộc phải chặn thông qua hiệu ứng tương ứng.
+Khi xử lý chặn, phải xét trạng thái Dễ Bị Tổn Thương cùng hiệu ứng Thách Đấu.
+Câm Lặng (Silence)
+Xóa các từ khóa, kỹ năng và hiệu ứng phù hợp trên bài quân theo quy tắc Câm Lặng.
+Không xóa lượng sát thương đã nhận hoặc chỉ số cơ bản của bài quân.
+Phải phân biệt hiệu ứng được cấp tạm thời, hiệu ứng vĩnh viễn và chỉ số gốc.
+Bị Bắt Giữ (Captured)
+Bài quân bị đưa khỏi bàn đấu và trở lại khi bài quân đang bắt giữ nó rời bàn đấu.
+Bị Bắt Giữ không phải là chết thông thường.
+Nếu bài quân đã bị xác nhận chặn trước khi bị bắt giữ, trạng thái đã bị chặn vẫn phải được giữ cho đợt giao tranh đó.
+Đóng Băng (Frostbite)
+Đưa Sức Mạnh của bài quân về 0 trong thời gian hiệu lực.
+Bài quân có thể được tăng Sức Mạnh trở lại bằng hiệu ứng phù hợp.
+Nếu bài quân có Kiên Cường, cần dùng đúng quy tắc Kiên Cường thay vì mặc định lấy Sức Mạnh bằng 0 để tính đòn đánh.
+Cảm Tử (Ephemeral)
+Bài quân Cảm Tử bị tiêu diệt sau khi ra đòn hoặc khi round kết thúc theo điều kiện của từ khóa.
+Phải xử lý các hiệu ứng chết hợp lệ sau khi Cảm Tử bị tiêu diệt.
+4. Từ khóa thay đổi chỉ số hoặc kết quả giao tranh
+Nâng Cấp (Augment)
+Bài quân có Nâng Cấp nhận +1 Sức Mạnh khi chứng kiến người chơi đánh một lá bài được tạo ra.
+Phải cập nhật Sức Mạnh trước khi tính sát thương nếu hiệu ứng đã kích hoạt.
+Vực Sâu (Deep)
+Người chơi đạt trạng thái Vực Sâu khi bộ bài còn 15 lá hoặc ít hơn.
+Khi đạt Vực Sâu, các bài quân đồng minh có từ khóa Vực Sâu nhận +3/+3.
+Tiến Hóa (Evolve)
+Khi đáp ứng điều kiện đã thấy ít nhất 6 từ khóa tích cực khác nhau trên đồng minh trong ván, bài quân có Tiến Hóa nhận +2/+2.
+Phải theo dõi các từ khóa khác nhau, không đếm số lần lặp của cùng một từ khóa như nhiều loại riêng biệt.
+Định Mệnh (Fated)
+Mỗi round, lần đầu bài quân Định Mệnh được một đồng minh chọn làm mục tiêu khi đang trên bàn đấu, nó nhận +1/+1.
+Chọn một lá bài Định Mệnh còn trên tay không tính là chọn mục tiêu trên bàn đấu.
+Cuồng Nộ (Fury)
+Khi bài quân Cuồng Nộ tiêu diệt một bài quân địch, nó nhận +1/+1.
+Phải kích hoạt đúng khi điều kiện tiêu diệt được xác nhận.
+Hallowed
+Khi đồng minh tấn công, bài quân đồng minh ngoài cùng bên trái nhận +1 Sức Mạnh cho mỗi bài quân Hallowed đồng minh đã hy sinh trong ván.
+Cần theo dõi số bài quân Hallowed đã hy sinh, không chỉ số bài Hallowed đang có trên bàn.
+Kích Động (Impact)
+Khi bài quân có Kích Động ra đòn trong lúc tấn công, nó gây sát thương lên Nhà Chính đối phương theo số cộng dồn Kích Động.
+Kích Động có thể cộng dồn.
+Kích Động không đồng nghĩa với Nexus Strike; không tự kích hoạt hiệu ứng chỉ yêu cầu đánh trúng Nhà Chính.
+Rình Rập (Lurk)
+Nếu lá bài trên cùng bộ bài có Rình Rập khi một bài quân đồng minh có Rình Rập tấn công, các bài quân Lurker đồng minh ở mọi nơi được tăng Sức Mạnh theo luật Rình Rập.
+Hiệu ứng tối đa một lần mỗi round.
+Phải kiểm tra lá bài trên cùng bộ bài đúng thời điểm tấn công.
+Khí Lực (Spirit)
+Mỗi cộng dồn Khí Lực tăng +1/+1 theo hiệu ứng của từ khóa.
+Gloom
+Mỗi cộng dồn Gloom giảm -1/-1 theo hiệu ứng của từ khóa.
+Nếu phiên bản tiếng Việt của game hiển thị tên khác, ưu tiên tên hiển thị trong game.
+5. Các tổ hợp từ khóa cần kiểm thử
+Đột Kích + Áp Đảo
+Bài quân tấn công ra đòn trước. Nếu còn sát thương dư hoặc blocker đã bị loại, xử lý sát thương Nhà Chính theo Áp Đảo.
+Song Kích + Áp Đảo
+Xử lý hai lần ra đòn theo đúng thứ tự. Nếu blocker bị tiêu diệt ở đòn đầu, không tự động cho đòn thứ hai đánh Nhà Chính nếu không có Áp Đảo.
+Áp Đảo + Lá Chắn
+Lá Chắn có thể bảo vệ bài quân chặn khỏi phần sát thương được phân bổ lên nó, nhưng không ngăn phần sát thương Áp Đảo lên Nhà Chính.
+Áp Đảo + Cứng Cáp
+Cứng Cáp giảm sát thương bài quân chặn nhận. Phải tính phần sát thương dư theo quy tắc Áp Đảo của game.
+Đáng Sợ + Thách Đấu
+Phải xét điều kiện Đáng Sợ và ngoại lệ ép chặn từ Thách Đấu.
+Huyền Ảo + Thách Đấu
+Phải xét ngoại lệ ép chặn. Không được áp dụng máy móc quy tắc chỉ Huyền Ảo mới chặn được Huyền Ảo trong mọi trường hợp.
+Huyền Ảo + Sharpsight
+Sharpsight cho phép bài quân chặn bài quân Huyền Ảo theo quy tắc của hiệu ứng.
+Kiên Cường + Đóng Băng
+Kiên Cường dùng Máu để tính sát thương; không mặc định lấy Sức Mạnh 0 làm sát thương.
+Hút Máu + Lá Chắn
+Nếu bài quân chặn có Lá Chắn và không nhận sát thương, đòn đánh đó không hồi Máu Nhà Chính bằng Hút Máu.
+Khiên Phép + phép nhiều mục tiêu
+Xử lý Khiên Phép riêng trên từng mục tiêu; không bảo vệ toàn bộ đội hình.
+Cảm Tử + Đột Kích
+Xử lý thứ tự ra đòn của Đột Kích, sau đó xử lý Cảm Tử khi điều kiện hy sinh xảy ra.
+Cuồng Nộ + Đột Kích
+Cuồng Nộ chỉ kích hoạt khi bài quân thực sự tiêu diệt bài quân địch.
+Hallowed + Support
+Huyền Thoại Runeterra – Đặc tả Combat
+PHẦN 3/3: Hiệu ứng kích hoạt, sát thương, trạng thái và tử vong
+1. Hiệu ứng không phải từ khóa nhưng ảnh hưởng trực tiếp đến giao tranh
+Tấn Công (Attack)
+Kích hoạt khi người chơi xác nhận đợt tấn công. Đây không đồng nghĩa với việc bài quân đã ra đòn hoặc gây sát thương.
+Ra Đòn (Strike)
+Kích hoạt khi bài quân thực sự thực hiện một đòn Strike theo điều kiện của hiệu ứng. Không phải mọi hiệu ứng gây sát thương đều được xem là Strike.
+Chặn (Block)
+Kích hoạt khi việc chặn được xác nhận. Cần lưu lại quan hệ giữa bài quân tấn công và bài quân chặn.
+Nexus Strike
+Là hiệu ứng riêng yêu cầu bài quân ra đòn vào Nhà Chính đối phương. Không được tự động kích hoạt chỉ vì Nhà Chính nhận sát thương từ một hiệu ứng khác.
+Hỗ Trợ (Support)
+Khi tấn công, bài quân có Hỗ Trợ hỗ trợ bài quân đồng minh đứng ngay bên phải theo nội dung hiệu ứng.
+Trăn Trối (Last Breath)
+Kích hoạt khi bài quân hy sinh theo điều kiện của Trăn Trối. Không kích hoạt khi bài quân bị Xóa Sổ, vì Xóa Sổ không được tính là hy sinh thông thường.
+Kỹ Năng (Skill)
+Kỹ năng được tạo ra bởi bài quân hoặc hiệu ứng. Kỹ năng có thể tạo cửa sổ phản hồi trước khi giải quyết. Phải xử lý theo tốc độ và quy tắc của kỹ năng trong game.
+Hút Cạn (Drain)
+Gây sát thương và hồi Máu Nhà Chính theo lượng sát thương thực tế được gây ra. Nếu mục tiêu có Lá Chắn và không nhận sát thương, Hút Cạn không gây sát thương và không hồi Máu.
+Tập Kích (Rally)
+Nếu người chơi chưa có Biểu Tượng Tấn Công, nhận Biểu Tượng Tấn Công.
+Tấn Công Tự Do (Free Attack)
+Tuyên bố một đợt tấn công với các bài quân được chỉ định. Tấn Công Tự Do khác với hiệu ứng chỉ yêu cầu hai bài quân ra đòn vào nhau. Một hiệu ứng Strike không mặc nhiên kích hoạt hiệu ứng Tấn Công.
+2. Phân biệt Tấn Công, Ra Đòn và Nexus Strike
+Tấn Công kích hoạt khi xác nhận đợt tấn công.
+Ra Đòn chỉ kích hoạt khi bài quân thực sự thực hiện đòn Strike.
+Nexus Strike là hiệu ứng riêng khi bài quân ra đòn vào Nhà Chính đối phương.
+Kích Động gây sát thương Nhà Chính khi bài quân ra đòn trong lúc tấn công, nhưng không tự động được xem là Nexus Strike.
+Không gộp các sự kiện này thành một sự kiện chung tên “đánh”. Việc gộp sẽ làm sai thời điểm kích hoạt Cuồng Nộ, Kích Động, Hallowed, Tấn Công và các kỹ năng khác.
+3. Thứ tự xử lý sát thương
+Mỗi lần bài quân thực sự ra đòn, engine cần:
+Xác định Sức Mạnh hiện tại. Nếu có Kiên Cường, dùng Máu hiện tại thay cho Sức Mạnh.
+Xác định các hiệu ứng thay đổi hoặc giảm sát thương, ví dụ Cứng Cáp.
+Kiểm tra Lá Chắn.
+Áp dụng sát thương lên Máu nếu sát thương không bị chặn hoàn toàn.
+Nếu có Áp Đảo, xác định phần sát thương tràn sang Nhà Chính theo quy tắc game.
+Kích hoạt các hiệu ứng Ra Đòn phù hợp như Kích Động, Hút Máu và kỹ năng liên quan.
+Kiểm tra bài quân có hy sinh hay không.
+Xử lý Trăn Trối, Bất Diệt và các hiệu ứng hy sinh/hồi sinh.
+Tiếp tục xử lý các bài quân hoặc đòn đánh còn lại theo thứ tự giao tranh.
+Giao tranh thông thường có thể gây sát thương đồng thời. Đột Kích và Song Kích thay đổi thứ tự ra đòn của bài quân tấn công. Không dùng một công thức duy nhất cho mọi cặp giao tranh.
+4. Phân biệt trạng thái của bài quân
+Còn tồn tại (Alive)
+Bài quân vẫn tồn tại trong trạng thái game. Bài quân có thể còn tồn tại nhưng không còn trên bàn đấu hoặc không còn tham gia giao tranh.
+Đang giao tranh (InCombat)
+Bài quân vẫn tham gia đợt giao tranh hiện tại.
+Đã bị chặn (WasBlocked)
+Bài quân tấn công đã được một bài quân phòng thủ xác nhận chặn trong đợt giao tranh hiện tại. Trạng thái này phải được giữ lại kể cả khi bài quân chặn rời bàn đấu.
+Bị loại khỏi giao tranh (RemovedFromCombat)
+Bài quân không còn tham gia giao tranh hiện tại nhưng không nhất thiết đã hy sinh.
+Ví dụ:
+Thu Hồi: bài quân trở về tay, không còn trên bàn đấu.
+Choáng: bài quân còn tồn tại nhưng bị loại khỏi giao tranh.
+Bị Bắt Giữ: bài quân tạm thời rời bàn đấu.
+Xóa Sổ: bài quân bị loại khỏi game, không phải hy sinh thông thường.
+Bất Diệt: bài quân hy sinh rồi được hồi sinh theo hiệu ứng.
+Các trạng thái này ảnh hưởng khác nhau đến Trăn Trối, hồi sinh, quan hệ chặn và sát thương.
+5. Thứ tự giao tranh khi có nhiều bài quân
+Khi có nhiều cặp tấn công/chặn, xử lý theo thứ tự giao tranh của game, thường từ trái sang phải đối với các hiệu ứng Strike liên quan.
+Ví dụ:
+Bài quân tấn công ngoài cùng bên trái và bài quân chặn tương ứng.
+Bài quân tấn công ở giữa và bài quân chặn tương ứng.
+Bài quân tấn công ngoài cùng bên phải và bài quân chặn tương ứng.
+Hiệu ứng từ một cặp có thể thay đổi chỉ số hoặc trạng thái trước khi cặp tiếp theo được xử lý. Không nên chụp toàn bộ chỉ số một lần rồi áp dụng mọi sát thương mà bỏ qua các hiệu ứng trung gian.
+6. Hy sinh và rời khỏi bàn đấu
+Hy sinh do sát thương hoặc hiệu ứng tiêu diệt
+Kích hoạt Trăn Trối nếu bài quân có Trăn Trối.
+Có thể kích hoạt Bất Diệt nếu bài quân có Bất Diệt.
+Nếu bài quân đã được xác nhận chặn, bài quân tấn công vẫn được tính là đã bị chặn.
+Thu Hồi (Recall)
+Trả bài quân về tay và loại bỏ các hiệu ứng được áp dụng lên nó theo quy tắc Thu Hồi.
+Không kích hoạt Trăn Trối vì đây không phải hy sinh.
+Nếu đã chặn trước khi bị Thu Hồi, trạng thái đã bị chặn vẫn được giữ cho đợt giao tranh đó.
+Xóa Sổ (Obliterate)
+Loại bài quân khỏi game hoàn toàn.
+Không kích hoạt Trăn Trối.
+Không được xem là hy sinh và không thể hồi sinh bằng hiệu ứng hồi sinh thông thường.
+Nếu bài quân đã chặn trước khi bị Xóa Sổ, attacker vẫn được tính là đã bị chặn.
+Bị Bắt Giữ (Captured)
+Đưa bài quân khỏi bàn đấu cho đến khi điều kiện giải phóng xảy ra.
+Không xử lý như hy sinh thông thường.
+Nếu đã xác nhận chặn, vẫn giữ trạng thái đã bị chặn trong đợt giao tranh.
+Choáng (Stun)
+Loại bài quân khỏi giao tranh và ngăn bài quân tấn công/chặn trong thời gian hiệu lực.
+Choáng sau khi đã xác nhận chặn không làm attacker tự chuyển sang đánh Nhà Chính.
+Cảm Tử (Ephemeral)
+Bài quân hy sinh sau khi ra đòn hoặc khi round kết thúc theo điều kiện của từ khóa.
+Xử lý các hiệu ứng hy sinh hợp lệ sau khi bài quân Cảm Tử bị tiêu diệt.
+Bất Diệt (Deathless)
+Khi bài quân hy sinh, tiêu thụ Bất Diệt và hồi sinh bài quân với 1 Máu trong trạng thái Choáng.
+Đây là một lần hy sinh và hồi sinh; không được giữ nguyên trạng thái của unit cũ như thể nó chưa từng rời sân.
+Phải xử lý hiệu ứng hy sinh và hồi sinh theo đúng thứ tự.
+Không xóa dữ liệu bài quân quá sớm trước khi xử lý các hiệu ứng hy sinh hợp lệ.
+7. Các cơ chế bổ sung cần hỗ trợ
+Tầm Nhìn Sáng Suốt (Sharpsight)
+Cho phép bài quân chặn bài quân Huyền Ảo theo hiệu ứng. Cần kiểm tra khi xây dựng danh sách bài quân chặn hợp lệ.
+Đính Kèm (Attach) và Trang Bị (Equipment)
+Có thể truyền chỉ số hoặc từ khóa cho bài quân mang chúng. Khi bài quân mang rời bàn đấu, xử lý Đính Kèm/Trang Bị theo đúng quy tắc riêng của từng loại.
+Thu Hồi và Xóa Sổ
+Thu Hồi: trả bài quân về tay.
+Xóa Sổ: loại bài quân khỏi game.
+Hai cơ chế không được dùng chung một hàm “hy sinh”.
+Tập Kích (Rally)
+Cấp Biểu Tượng Tấn Công nếu người chơi chưa có, từ đó mở thêm cơ hội tấn công.
+Tấn Công Tự Do (Free Attack)
+Tạo một đợt tấn công tự do theo hiệu ứng. Không xử lý như một lần tiêu thụ Biểu Tượng Tấn Công thông thường nếu nội dung lá bài quy định khác.
+Hút Cạn (Drain)
+Gây sát thương và hồi Máu Nhà Chính theo lượng sát thương thực tế. Phải xét Lá Chắn và các hiệu ứng giảm sát thương.
+Lên Cấp (Level Up)
+Khi Anh Hùng lên cấp, cập nhật chỉ số và kỹ năng mới mà không làm mất sát thương đã nhận hoặc trạng thái giao tranh còn hiệu lực, trừ khi hiệu ứng lên cấp quy định khác.
+Nguyền Rủa (Curse) và Bay Biến (Fleeting)
+Không trực tiếp thay đổi cách ra đòn/chặn. Nguyền Rủa có thể ảnh hưởng chi phí hoặc trạng thái lá bài; Bay Biến khiến lá bài bị bỏ đi vào cuối round theo luật của từ khóa.
+8. Nguyên tắc triển khai
+Tấn Công không đồng nghĩa với Ra Đòn; Ra Đòn không đồng nghĩa với Nexus Strike.
+Trạng thái Đã Bị Chặn phải được giữ đến khi combat kết thúc, kể cả khi bài quân chặn rời bàn đấu.
+Phép và kỹ năng phải giải quyết xong trước khi tiếp tục Strike.
+Burst giải quyết ngay; Fast dùng stack và có cửa sổ phản hồi.
+Tách biệt Hy Sinh, Thu Hồi, Xóa Sổ, Bị Bắt Giữ và Choáng.
+Player và AI phải dùng chung một bộ quy tắc combat.
+Mỗi từ khóa cần điều kiện và thời điểm kích hoạt riêng; không gom tất cả vào một hàm sát thương chung.
+Tài liệu này là đặc tả gameplay để triển khai prototype. Với tương tác riêng của từng lá bài, ưu tiên nội dung và quy tắc thực tế hiển thị trong phiên bản game đang dùng.
+Tính hiệu ứng Hallowed tại thời điểm tấn công và áp dụng Support đúng cho bài quân đồng minh ở vị trí phù hợp.
