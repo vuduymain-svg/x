@@ -77,8 +77,8 @@ fun <T> PlayerHandOverlay(
         val containerWidth = maxWidth
         val containerHeight = maxHeight
 
-        // Full readable card size (~15% larger when expanded/dragged); collapsed state scales to 0.60f to stay compact
-        val cardFullHeight = (containerHeight * 0.368f).coerceIn(134.dp, 184.dp)
+        // Full readable card size when expanded/dragged; collapsed state scales to 0.58f to stay compact
+        val cardFullHeight = (containerHeight * 0.39f).coerceIn(142.dp, 196.dp)
         val cardFullWidth = cardFullHeight * 0.6875f
 
         // 1. Invisible field scrim when expanded: tapping outside the hand collapses it to BottomEnd
@@ -99,13 +99,13 @@ fun <T> PlayerHandOverlay(
         // 2. Player hand card fan / collapsed stack
         val count = cards.size
         if (count > 0) {
-            val collapsedScale = 0.60f
-            val expandedScale = 0.96f
+            val collapsedScale = 0.58f
+            val expandedScale = 1.0f
             val collapsedWidth = cardFullWidth * collapsedScale
 
             val maxCollapsedSpan = minOf(containerWidth * 0.24f, 160.dp)
             val collapsedStep = (maxCollapsedSpan / count.coerceAtLeast(1)).coerceIn(13.dp, 22.dp)
-            val expandedStep = ((containerWidth * 0.62f) / count.coerceAtLeast(1)).coerceIn(40.dp, 76.dp)
+            val expandedStep = ((containerWidth * 0.65f) / count.coerceAtLeast(1)).coerceIn(44.dp, 82.dp)
 
             cards.forEachIndexed { index, card ->
                 val key = cardKey(card)

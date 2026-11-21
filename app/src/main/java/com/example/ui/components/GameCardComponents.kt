@@ -72,6 +72,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.ContentScale
@@ -79,6 +80,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.TextUnit
@@ -339,7 +341,7 @@ fun CardTile(
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(76.dp)
+                        .height(100.dp)
                         .padding(horizontal = if (isSpellCard) GameSpacing.md else 0.dp)
                         .clip(artShape)
                         .background(BgDeep)
@@ -671,8 +673,10 @@ fun HandCardView(
 
     val portraitRes = cardPortraitRes(template.id)
     val artHeight = cardHeight * 0.44f
-    val smallTextSize = (descFontSize.value * 0.70f).coerceAtLeast(7f).sp
-    val tinyStatSize = (statFontSize.value * 0.80f).coerceAtLeast(9.5f).sp
+    val nameFontSize = (cardWidth.value * 0.095f).coerceIn(8.5f, 11.5f).sp
+    val infoFontSize = (cardWidth.value * 0.080f).coerceIn(7.4f, 9.8f).sp
+    val infoLineHeight = (cardWidth.value * 0.094f).coerceIn(8.8f, 11.4f).sp
+    val tinyStatSize = maxOf((statFontSize.value * 0.82f), (cardWidth.value * 0.110f)).coerceIn(9.5f, 13.5f).sp
     val hasUnitStats = template.type == CardType.UNIT ||
         template.type == CardType.CHAMPION ||
         template.type == CardType.EQUIPMENT
@@ -701,55 +705,27 @@ fun HandCardView(
         shadowElevation = 0.dp
     ) {
         Box(modifier = Modifier.fillMaxSize()) {
-            Column(
-                modifier = Modifier.fillMaxSize(),
-                verticalArrangement = Arrangement.SpaceBetween
-            ) {
-                // Header nameplate
-                Column(modifier = Modifier.fillMaxWidth()) {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .background(SurfaceElevated)
-                            .padding(
-                                start = cardWidth * 0.30f,
-                                end = GameSpacing.xs,
-                                top = GameSpacing.xs,
-                                bottom = GameSpacing.xs
-                            ),
-                        contentAlignment = Alignment.CenterStart
-                    ) {
-                        Text(
-                            text = template.name,
-                            fontFamily = CinzelFontFamily,
-                            fontWeight = FontWeight.Bold,
-                            fontSize = smallTextSize,
-                            color = if (template.isChampion) AccentGold else TextPrimary,
-                            lineHeight = smallTextSize * 1.1f,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis
-                        )
-                    }
-                    HorizontalDivider(
-                        thickness = 1.dp,
-                        color = if (template.isChampion) BorderGoldMuted else BorderSubtle
-                    )
-                }
-
-                // Artwork window
+            Column(modifier = Modifier.fillMaxSize()) {
+                // Top Artwork Window with embedded Mana Gem & bottom-edge Nameplate Scrim
                 val isSpellCard = template.type == CardType.SPELL
-                val artShape = if (isSpellCard) RoundedCornerShape(GameRadius.card) else RoundedCornerShape(GameRadius.badge)
+                val artShape = if (isSpellCard) RoundedCornerShape(GameRadius.card) else RoundedCornerShape(topStart = GameRadius.card, topEnd = GameRadius.card)
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(artHeight)
-                        .padding(horizontal = if (isSpellCard) GameSpacing.sm else GameSpacing.xs)
+                        .padding(
+                            start = if (isSpellCard) GameSpacing.xs else 0.dp,
+                            end = if (isSpellCard) GameSpacing.xs else 0.dp,
+                            top = if (isSpellCard) GameSpacing.xs else 0.dp
+                        )
                         .clip(artShape)
                         .background(SurfaceElevated)
-                        .border(
-                            width = 1.dp,
-                            color = if (isSpellCard) AccentIce.copy(alpha = 0.55f) else BorderSubtle,
-                            shape = artShape
+                        .then(
+                            if (isSpellCard) {
+                                Modifier.border(1.dp, AccentIce.copy(alpha = 0.55f), artShape)
+                            } else {
+                                Modifier
+                            }
                         ),
                     contentAlignment = Alignment.Center
                 ) {
@@ -758,6 +734,7 @@ fun HandCardView(
                             painter = painterResource(id = portraitRes),
                             contentDescription = template.name,
                             contentScale = ContentScale.Crop,
+                            alignment = Alignment.TopCenter,
                             modifier = Modifier.fillMaxSize()
                         )
                     } else {
@@ -775,17 +752,49 @@ fun HandCardView(
                             modifier = Modifier.size(cardWidth * 0.34f)
                         )
                     }
+
+                    // Bottom gradient scrim on artwork so card name stays razor-sharp
+                    Box(
+                        modifier = Modifier
+                            .align(Alignment.BottomCenter)
+                            .fillMaxWidth()
+                            .height(artHeight * 0.44f)
+                            .background(
+                                Brush.verticalGradient(
+                                    colors = listOf(Color.Transparent, Color(0xE6080E1A))
+                                )
+                            )
+                    )
+
+                    Text(
+                        text = template.name,
+                        fontFamily = CinzelFontFamily,
+                        fontWeight = FontWeight.Bold,
+                        fontSize = nameFontSize,
+                        color = if (template.isChampion) AccentGold else TextPrimary,
+                        lineHeight = nameFontSize * 1.08f,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        textAlign = TextAlign.Center,
+                        modifier = Modifier
+                            .align(Alignment.BottomCenter)
+                            .fillMaxWidth()
+                            .padding(horizontal = 4.dp, vertical = 2.dp)
+                    )
                 }
 
-                // Bottom box: Max 2 concise keywords text + description + ATK/HP
+                HorizontalDivider(
+                    thickness = 1.dp,
+                    color = if (template.isChampion) BorderGoldMuted else BorderSubtle
+                )
+
+                // Lower Card Info Panel: Keywords / Spell Speed + Readable Effect Text + ATK/HP Stats
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
                         .weight(1f)
-                        .padding(horizontal = GameSpacing.xs, vertical = 2.dp)
-                        .clip(RoundedCornerShape(GameRadius.badge))
                         .background(BgDeep)
-                        .padding(horizontal = GameSpacing.xs, vertical = 2.dp),
+                        .padding(horizontal = 5.dp, vertical = 3.dp),
                     verticalArrangement = Arrangement.SpaceBetween
                 ) {
                     val mergedKeywords = remember(template.keywords, handCard.extraKeywords) {
@@ -805,21 +814,21 @@ fun HandCardView(
                             Text(
                                 text = kwHeader,
                                 fontFamily = PlusJakartaSansFamily,
-                                fontSize = (smallTextSize.value * 0.78f).coerceAtLeast(6f).sp,
-                                fontWeight = FontWeight.SemiBold,
-                                color = if (template.spellSpeed != SpellSpeed.NONE) AccentIce else AccentGold,
+                                fontSize = (infoFontSize.value * 0.94f).coerceAtLeast(7.2f).sp,
+                                fontWeight = FontWeight.Bold,
+                                color = if (template.spellSpeed != SpellSpeed.NONE && mergedKeywords.isEmpty()) AccentIce else AccentGold,
                                 maxLines = 1,
                                 overflow = TextOverflow.Ellipsis
                             )
-                            HorizontalDivider(thickness = 0.5.dp, color = BorderSubtle)
+                            HorizontalDivider(thickness = 0.6.dp, color = BorderSubtle.copy(alpha = 0.7f))
                         }
                         Text(
                             text = template.description,
                             fontFamily = InterFontFamily,
-                            fontSize = (smallTextSize.value * 0.80f).coerceAtLeast(6.2f).sp,
-                            lineHeight = (smallTextSize.value * 0.92f).coerceAtLeast(7.2f).sp,
-                            color = TextSecondary,
-                            maxLines = if (isShowcasePreview) 4 else if (kwHeader != null) 1 else 2,
+                            fontSize = infoFontSize,
+                            lineHeight = infoLineHeight,
+                            color = TextPrimary.copy(alpha = 0.90f),
+                            maxLines = if (isShowcasePreview) 4 else 3,
                             overflow = TextOverflow.Ellipsis
                         )
                     }
@@ -845,8 +854,8 @@ fun HandCardView(
                                 modifier = Modifier
                                     .clip(RoundedCornerShape(GameRadius.badge))
                                     .background(SurfaceElevated)
-                                    .border(1.dp, SemanticAttack.copy(alpha = 0.65f), RoundedCornerShape(GameRadius.badge))
-                                    .padding(horizontal = GameSpacing.xs, vertical = 1.dp)
+                                    .border(1.dp, SemanticAttack.copy(alpha = 0.8f), RoundedCornerShape(GameRadius.badge))
+                                    .padding(horizontal = 5.dp, vertical = 1.dp)
                             ) {
                                 Text(
                                     text = "$totalPow",
@@ -858,8 +867,8 @@ fun HandCardView(
                                 modifier = Modifier
                                     .clip(RoundedCornerShape(GameRadius.badge))
                                     .background(SurfaceElevated)
-                                    .border(1.dp, SemanticDanger.copy(alpha = 0.65f), RoundedCornerShape(GameRadius.badge))
-                                    .padding(horizontal = GameSpacing.xs, vertical = 1.dp)
+                                    .border(1.dp, SemanticDanger.copy(alpha = 0.8f), RoundedCornerShape(GameRadius.badge))
+                                    .padding(horizontal = 5.dp, vertical = 1.dp)
                             ) {
                                 Text(
                                     text = "$totalHp",
@@ -867,14 +876,22 @@ fun HandCardView(
                                 )
                             }
                         } else {
-                            Text(
-                                text = template.spellSpeed.displayName,
-                                fontFamily = PlusJakartaSansFamily,
-                                fontSize = (smallTextSize.value * 0.78f).coerceAtLeast(6.5f).sp,
-                                fontWeight = FontWeight.SemiBold,
-                                color = AccentIce,
-                                maxLines = 1
-                            )
+                            Box(
+                                modifier = Modifier
+                                    .clip(RoundedCornerShape(GameRadius.badge))
+                                    .background(SurfaceElevated)
+                                    .border(1.dp, AccentIce.copy(alpha = 0.65f), RoundedCornerShape(GameRadius.badge))
+                                    .padding(horizontal = 5.dp, vertical = 1.dp)
+                            ) {
+                                Text(
+                                    text = template.spellSpeed.displayName,
+                                    fontFamily = PlusJakartaSansFamily,
+                                    fontSize = (infoFontSize.value * 0.90f).coerceAtLeast(7f).sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = AccentIce,
+                                    maxLines = 1
+                                )
+                            }
                         }
                     }
                 }
@@ -884,13 +901,13 @@ fun HandCardView(
             Box(
                 modifier = Modifier
                     .align(Alignment.TopStart)
-                    .padding(GameSpacing.xs)
-                    .size(cardWidth * 0.27f)
+                    .padding(3.dp)
+                    .size(cardWidth * 0.25f)
                     .zIndex(5f)
                     .clip(CircleShape)
-                    .background(SurfaceElevated)
+                    .background(Color(0xEE0E1A2E))
                     .border(
-                        width = 1.dp,
+                        width = 1.2.dp,
                         color = if (playable) AccentIce else BorderSubtle,
                         shape = CircleShape
                     ),
@@ -1063,6 +1080,7 @@ fun UnitToken(
                                 painter = painterResource(id = resId),
                                 contentDescription = unit.template.name,
                                 contentScale = ContentScale.Crop,
+                                alignment = Alignment.TopCenter,
                                 modifier = Modifier.fillMaxSize()
                             )
                         } else {
@@ -1070,7 +1088,7 @@ fun UnitToken(
                                 modifier = Modifier
                                     .fillMaxSize()
                                     .background(
-                                        androidx.compose.ui.graphics.Brush.verticalGradient(
+                                        Brush.verticalGradient(
                                             colors = listOf(
                                                 regionColor.copy(alpha = 0.34f),
                                                 SurfaceElevated,
@@ -1080,47 +1098,28 @@ fun UnitToken(
                                     ),
                                 contentAlignment = Alignment.Center
                             ) {
-                                Column(
+                                Box(
                                     modifier = Modifier
-                                        .fillMaxSize()
-                                        .padding(horizontal = 4.dp, vertical = 6.dp),
-                                    horizontalAlignment = Alignment.CenterHorizontally,
-                                    verticalArrangement = Arrangement.Center
+                                        .padding(bottom = tileHeight * 0.22f)
+                                        .size(tileWidth * 0.44f)
+                                        .clip(CircleShape)
+                                        .background(regionColor.copy(alpha = 0.18f))
+                                        .border(
+                                            width = 1.2.dp,
+                                            color = (if (isChampion) AccentGold else regionColor).copy(alpha = 0.72f),
+                                            shape = CircleShape
+                                        ),
+                                    contentAlignment = Alignment.Center
                                 ) {
-                                    Box(
-                                        modifier = Modifier
-                                            .size(tileWidth * 0.44f)
-                                            .clip(CircleShape)
-                                            .background(regionColor.copy(alpha = 0.18f))
-                                            .border(
-                                                width = 1.2.dp,
-                                                color = (if (isChampion) AccentGold else regionColor).copy(alpha = 0.72f),
-                                                shape = CircleShape
-                                            ),
-                                        contentAlignment = Alignment.Center
-                                    ) {
-                                        Icon(
-                                            imageVector = when {
-                                                unit.template.type == CardType.LANDMARK -> Icons.Outlined.HourglassBottom
-                                                isChampion -> Icons.Outlined.StarOutline
-                                                else -> Icons.Outlined.SportsKabaddi
-                                            },
-                                            contentDescription = unit.template.name,
-                                            tint = if (isChampion) AccentGold else regionColor,
-                                            modifier = Modifier.size(tileWidth * 0.27f)
-                                        )
-                                    }
-                                    Spacer(modifier = Modifier.height(3.dp))
-                                    Text(
-                                        text = unit.template.name,
-                                        fontFamily = PlusJakartaSansFamily,
-                                        fontWeight = FontWeight.Bold,
-                                        fontSize = (tileWidth.value * 0.125f).coerceIn(7.5f, 10f).sp,
-                                        lineHeight = (tileWidth.value * 0.145f).coerceIn(8.5f, 11.5f).sp,
-                                        color = if (isChampion) AccentGold else TextPrimary,
-                                        maxLines = 2,
-                                        overflow = TextOverflow.Ellipsis,
-                                        textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                                    Icon(
+                                        imageVector = when {
+                                            unit.template.type == CardType.LANDMARK -> Icons.Outlined.HourglassBottom
+                                            isChampion -> Icons.Outlined.StarOutline
+                                            else -> Icons.Outlined.SportsKabaddi
+                                        },
+                                        contentDescription = unit.template.name,
+                                        tint = if (isChampion) AccentGold else regionColor,
+                                        modifier = Modifier.size(tileWidth * 0.27f)
                                     )
                                 }
                             }
@@ -1128,19 +1127,78 @@ fun UnitToken(
                     }
                 }
 
-                // Subtle bottom-edge gradient so ATK/HP pills stay readable without dimming card artwork
-                if (unit.template.type != CardType.LANDMARK) {
-                    Box(
-                        modifier = Modifier
-                            .align(Alignment.BottomCenter)
-                            .fillMaxWidth()
-                            .height(tileHeight * 0.28f)
-                            .background(
-                                androidx.compose.ui.graphics.Brush.verticalGradient(
-                                    colors = listOf(Color.Transparent, Color(0xAA060B14))
-                                )
+                // Bottom info gradient scrim so Unit Name, Keyword/Status, and ATK/HP are crystal-clear on the board
+                Box(
+                    modifier = Modifier
+                        .align(Alignment.BottomCenter)
+                        .fillMaxWidth()
+                        .height(tileHeight * 0.44f)
+                        .background(
+                            Brush.verticalGradient(
+                                colors = listOf(Color.Transparent, Color(0xBD070D18), Color(0xEB050A13))
                             )
+                        )
+                )
+
+                val statusOrKeywordTag: Pair<String, Color>? = when {
+                    unit.isStunned -> "Choáng" to SemanticDanger
+                    unit.isFrostbitten -> "Đóng Băng" to AccentIce
+                    unit.hasBarrier -> "Lá Chắn" to AccentGold
+                    unit.hasSpellShield -> "Khiên Phép" to AccentSpellMana
+                    unit.keywords.isNotEmpty() -> {
+                        val kw = unit.keywords.first()
+                        val kwTint = when (kw.category) {
+                            KeywordCategory.COMBAT_POSITIVE -> AccentIce
+                            KeywordCategory.NEGATIVE_STATUS -> SemanticDanger
+                            KeywordCategory.CARD_PROPERTY -> AccentGold
+                        }
+                        kw.displayName to kwTint
+                    }
+                    else -> null
+                }
+
+                Column(
+                    modifier = Modifier
+                        .align(Alignment.BottomCenter)
+                        .fillMaxWidth()
+                        .padding(
+                            start = 3.dp,
+                            end = 3.dp,
+                            bottom = if (unit.template.type != CardType.LANDMARK) (statTextSize.value + 10f).dp else 4.dp
+                        ),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(1.dp)
+                ) {
+                    Text(
+                        text = unit.template.name,
+                        fontFamily = PlusJakartaSansFamily,
+                        fontWeight = FontWeight.Bold,
+                        fontSize = (tileWidth.value * 0.122f).coerceIn(7.8f, 10.5f).sp,
+                        lineHeight = (tileWidth.value * 0.135f).coerceIn(8.8f, 11.5f).sp,
+                        color = if (isChampion) AccentGold else TextPrimary,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        textAlign = TextAlign.Center
                     )
+                    if (statusOrKeywordTag != null && tileHeight >= 68.dp) {
+                        Box(
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(3.dp))
+                                .background(Color(0xB30D192B))
+                                .border(0.7.dp, statusOrKeywordTag.second.copy(alpha = 0.65f), RoundedCornerShape(3.dp))
+                                .padding(horizontal = 4.dp, vertical = 0.5.dp)
+                        ) {
+                            Text(
+                                text = statusOrKeywordTag.first,
+                                fontFamily = PlusJakartaSansFamily,
+                                fontWeight = FontWeight.SemiBold,
+                                fontSize = (tileWidth.value * 0.098f).coerceIn(6.5f, 8.5f).sp,
+                                color = statusOrKeywordTag.second,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
+                            )
+                        }
+                    }
                 }
 
                 // Bottom-Left Attack & Bottom-Right Health tabular badges
@@ -1150,7 +1208,7 @@ fun UnitToken(
                             .align(Alignment.BottomStart)
                             .padding(start = 3.dp, bottom = 3.dp)
                             .clip(RoundedCornerShape(GameRadius.badge))
-                            .background(SurfaceBase.copy(alpha = 0.94f))
+                            .background(SurfaceBase.copy(alpha = 0.95f))
                             .border(1.dp, SemanticAttack, RoundedCornerShape(GameRadius.badge))
                             .padding(horizontal = GameSpacing.xs, vertical = 1.dp),
                         contentAlignment = Alignment.Center
@@ -1169,7 +1227,7 @@ fun UnitToken(
                             .align(Alignment.BottomEnd)
                             .padding(end = 3.dp, bottom = 3.dp)
                             .clip(RoundedCornerShape(GameRadius.badge))
-                            .background(SurfaceBase.copy(alpha = 0.94f))
+                            .background(SurfaceBase.copy(alpha = 0.95f))
                             .border(1.dp, SemanticDanger, RoundedCornerShape(GameRadius.badge))
                             .padding(horizontal = GameSpacing.xs, vertical = 1.dp),
                         contentAlignment = Alignment.Center

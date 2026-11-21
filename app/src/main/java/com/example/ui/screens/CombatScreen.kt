@@ -857,8 +857,8 @@ fun CombatScreen(
         val unitTileHeight = minOf(vh(22.4f), unitTileWidth * 1.24f).coerceAtLeast(60.dp)
         val unitGap = vw(1.05f)
 
-        // Floating drag preview card sizing (~15% larger to match expanded hand cards)
-        val handCardHeight = vh(36.8f).coerceIn(134.dp, 184.dp)
+        // Floating drag preview card sizing (matches expanded hand card size)
+        val handCardHeight = vh(39f).coerceIn(142.dp, 196.dp)
         val handCardWidth = handCardHeight * 0.6875f
 
         val championName = remember(combat.championId) {
@@ -1808,6 +1808,7 @@ fun CombatScreen(
                             cardHeight = handCardHeight,
                             descFontSize = descFontSize,
                             statFontSize = statFontSize,
+                            enablePressElevation = false,
                             onClick = {}
                         )
                     }

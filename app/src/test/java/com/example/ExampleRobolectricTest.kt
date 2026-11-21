@@ -12,7 +12,9 @@ import androidx.compose.ui.test.getUnclippedBoundsInRoot
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.moveTo
 import androidx.compose.ui.test.onAllNodesWithTag
+import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithTag
+import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performTouchInput
@@ -1180,6 +1182,119 @@ class ExampleRobolectricTest {
     }
     composeTestRule.waitForIdle()
     assertEquals("hc_mystics", playedCardId)
+  }
+
+  @Test
+  fun `aniviaDeckCardsHaveValidPortraitsAndShowClearInfoInHandAndOnBoard`() {
+    val aniviaDeckIds = CardCatalog.getChampion("champ_anivia").baseDeck.map { it.cardId }
+    assertEquals(9, aniviaDeckIds.size)
+    aniviaDeckIds.forEach { cardId ->
+      val resId = com.example.ui.components.cardPortraitRes(cardId)
+      assertTrue("Expected drawable resource for $cardId", resId != null && resId != 0)
+    }
+
+    val adv = AdventureCatalog.getAdventure("adv_demacia_outskirts")
+    val node = adv.mapNodes.first { it.id == "d_fight_1a" }
+    val boardAnivia = UnitOnBoard(
+      instanceId = "p_anivia_1",
+      template = CardCatalog.getCard("card_anivia"),
+      ownerIsPlayer = true,
+      power = 3,
+      health = 5,
+      maxHealth = 5,
+      keywords = setOf(com.example.model.Keyword.ELEMENTAL)
+    )
+    val boardProphet = UnitOnBoard(
+      instanceId = "p_prophet_1",
+      template = CardCatalog.getCard("card_mortal_prophet"),
+      ownerIsPlayer = true,
+      power = 0,
+      health = 5,
+      maxHealth = 5,
+      keywords = emptySet()
+    )
+    val mysticsTpl = CardCatalog.getCard("card_wild_mystics")
+    val harshWindsTpl = CardCatalog.getCard("card_harsh_winds")
+    val handMystics = com.example.model.HandCardInstance(
+      instanceId = "hc_mystics",
+      template = mysticsTpl,
+      effectiveCost = mysticsTpl.cost
+    )
+    val handHarshWinds = com.example.model.HandCardInstance(
+      instanceId = "hc_harsh",
+      template = harshWindsTpl,
+      effectiveCost = harshWindsTpl.cost
+    )
+    val combatState = CombatState(
+      encounterNode = node,
+      adventure = adv,
+      championId = "champ_anivia",
+      starLevel = 2,
+      equippedRelics = emptyList(),
+      activePowers = emptyList(),
+      mutators = emptyList(),
+      round = 6,
+      playerNexusHp = 40,
+      playerMaxHp = 40,
+      enemyNexusHp = 20,
+      enemyMaxHp = 20,
+      playerMana = 6,
+      playerMaxMana = 6,
+      playerSpellMana = 3,
+      playerHasAttackToken = true,
+      phase = CombatPhase.MAIN_ACTION_PHASE,
+      priorityHolder = com.example.engine.PriorityHolder.PLAYER,
+      playerBoard = listOf(boardAnivia, boardProphet),
+      enemyBoard = emptyList(),
+      playerHand = listOf(handMystics, handHarshWinds)
+    )
+
+    composeTestRule.setContent {
+      PathOfChampionsTheme {
+        Box(modifier = Modifier.size(width = 850.dp, height = 390.dp)) {
+          com.example.ui.screens.CombatScreen(
+            combat = combatState,
+            revivesRemaining = 1,
+            onPlayCard = {},
+            onPlayTargetedCard = { _, _ -> },
+            onEnterAttack = {},
+            onCancelAttack = {},
+            onToggleAttacker = {},
+            onDragBenchUnitToAttack = {},
+            onCommitAttack = {},
+            onSelectEnemyAttackerForBlock = {},
+            onAssignBlocker = { _, _ -> },
+            onRemoveBlocker = {},
+            onCommitBlock = {},
+            onResolveStack = {},
+            onPassTurn = {},
+            onVictoryContinue = {},
+            onUseRevive = {},
+            onAcceptDefeat = {},
+            onAbandonRun = {}
+          )
+        }
+      }
+    }
+    composeTestRule.waitForIdle()
+
+    // On board: unit names and keyword chip are clearly shown
+    composeTestRule.onNodeWithTag("board_unit_p_anivia_1").assertIsDisplayed()
+    composeTestRule.onNodeWithTag("board_unit_p_prophet_1").assertIsDisplayed()
+    assertTrue(composeTestRule.onAllNodesWithText("Anivia").fetchSemanticsNodes().isNotEmpty())
+    assertTrue(composeTestRule.onAllNodesWithText("Tiên Tri Chết Chóc").fetchSemanticsNodes().isNotEmpty())
+    assertTrue(
+      composeTestRule.onAllNodesWithText(com.example.model.Keyword.ELEMENTAL.displayName)
+        .fetchSemanticsNodes()
+        .isNotEmpty()
+    )
+
+    // In hand: card names, keywords/spell speed, and ability descriptions are clearly shown
+    composeTestRule.onNodeWithTag("hand_card_card_wild_mystics").performClick()
+    composeTestRule.waitForIdle()
+    composeTestRule.onNodeWithTag("hand_card_card_harsh_winds").assertIsDisplayed()
+    assertTrue(composeTestRule.onAllNodesWithText("Thầy Tu Hoang Dã").fetchSemanticsNodes().isNotEmpty())
+    assertTrue(composeTestRule.onAllNodesWithText("Cuồng Phong").fetchSemanticsNodes().isNotEmpty())
   }
 }
 
